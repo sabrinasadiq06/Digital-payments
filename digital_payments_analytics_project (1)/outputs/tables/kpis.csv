@@ -1,0 +1,2 @@
+total_transactions,successful_transactions,total_value_inr,avg_ticket_size_inr,active_customers,active_merchants,failure_rate_pct,fraud_rate_pct
+60000,56803,87343805.32,1455.73,4703,799,5.33,0.275

@@ -1,0 +1,6 @@
+payment_channel,txn_count,fraud_count,fraud_rate_pct
+Credit Card,9588,44,0.459
+Wallet,5964,17,0.285
+Debit Card,10834,30,0.277
+UPI,27654,63,0.228
+Net Banking,5960,11,0.185

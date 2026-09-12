@@ -1,0 +1,6 @@
+payment_channel,txn_count,failed_count,failure_rate_pct
+Net Banking,5960,461,7.73
+Debit Card,10834,686,6.33
+Credit Card,9588,502,5.24
+Wallet,5964,276,4.63
+UPI,27654,1272,4.6

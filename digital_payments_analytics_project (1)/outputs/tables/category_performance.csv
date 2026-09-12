@@ -1,0 +1,12 @@
+merchant_category,txn_count,avg_amount_inr,failure_rate_pct,fraud_rate_pct
+E-commerce,11960,1904.9,5.75,0.184
+Fuel,9403,1199.68,4.89,0.245
+Entertainment,7671,507.38,4.28,0.274
+Grocery,7427,646.83,4.59,0.337
+Food Delivery,6555,353.55,4.71,0.183
+Fashion,6095,1965.07,6.23,0.345
+Financial Services,3001,3102.7,8.0,0.267
+Utilities,2520,954.52,4.6,0.238
+Healthcare,2266,1633.67,4.02,0.353
+Travel,1782,4344.64,7.69,0.673
+Education,1320,5400.9,8.11,0.53

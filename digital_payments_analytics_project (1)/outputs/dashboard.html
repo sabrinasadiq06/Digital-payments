@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Payments Analytics — Ledger</title>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B0F16;
+    --surface: #121826;
+    --surface-2: #182236;
+    --border: #232E44;
+    --text: #E7ECF6;
+    --text-dim: #8793AA;
+    --teal: #2DD9B9;
+    --teal-dim: rgba(45,217,185,0.14);
+    --amber: #F2A93C;
+    --coral: #F0574B;
+    --indigo: #7C8CF8;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--sans);
+    display:grid; grid-template-columns: 236px 1fr; min-height:100vh;
+  }
+  ::selection{ background:var(--teal-dim); color:var(--teal); }
+
+  /* ---------- Sidebar ---------- */
+  #sidebar{
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+    background:var(--surface); border-right:1px solid var(--border);
+    padding:28px 20px; display:flex; flex-direction:column; gap:28px;
+  }
+  .brand{ display:flex; flex-direction:column; gap:4px; }
+  .brand .mark{
+    width:34px; height:34px; border-radius:8px;
+    background:linear-gradient(135deg, var(--teal), #1B9C84);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:700; color:#04231D; font-size:15px;
+    margin-bottom:8px;
+  }
+  .brand h1{ font-size:15px; font-weight:600; letter-spacing:0.2px; }
+  .brand p{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+
+  nav{ display:flex; flex-direction:column; gap:2px; }
+  nav a{
+    color:var(--text-dim); text-decoration:none; font-size:13.5px;
+    padding:9px 10px; border-radius:7px; border-left:2px solid transparent;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  nav a:hover{ background:var(--surface-2); color:var(--text); }
+  nav a.active{ color:var(--teal); border-left-color:var(--teal); background:var(--teal-dim); }
+
+  .sidebar-foot{ margin-top:auto; font-size:11.5px; color:var(--text-dim); line-height:1.5; }
+  .sidebar-foot .dot{ color:var(--teal); }
+
+  /* ---------- Main ---------- */
+  main{ padding:36px 44px 90px; max-width:1180px; }
+  header.top{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    margin-bottom:28px; gap:20px; flex-wrap:wrap;
+  }
+  header.top h2{ font-size:22px; font-weight:600; }
+  header.top p{ color:var(--text-dim); font-size:13.5px; margin-top:4px; max-width:520px; }
+  .range-pill{
+    font-family:var(--mono); font-size:12px; color:var(--teal);
+    border:1px solid var(--border); padding:7px 12px; border-radius:20px;
+    background:var(--surface); white-space:nowrap;
+  }
+
+  /* ---------- KPI strip ---------- */
+  .kpi-strip{
+    display:grid; grid-template-columns:repeat(6, 1fr); gap:12px; margin-bottom:44px;
+  }
+  .kpi{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:16px 14px;
+  }
+  .kpi .label{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.6px; }
+  .kpi .value{ font-family:var(--mono); font-size:21px; font-weight:600; margin-top:8px; letter-spacing:-0.3px; }
+  .kpi .sub{ font-size:11px; margin-top:5px; color:var(--text-dim); }
+  .kpi.warn .value{ color:var(--amber); }
+  .kpi.risk .value{ color:var(--coral); }
+  .kpi.good .value{ color:var(--teal); }
+
+  /* ---------- Sections ---------- */
+  section{ padding-top:52px; margin-top:-24px; scroll-margin-top:24px; }
+  section:first-of-type{ padding-top:0; }
+  .section-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:4px; }
+  .section-head h3{ font-size:17px; font-weight:600; }
+  .section-head .idx{ font-family:var(--mono); font-size:12px; color:var(--teal); }
+  .section-sub{ color:var(--text-dim); font-size:13px; margin-bottom:18px; max-width:640px; }
+
+  .grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:16px; }
+  .grid-3{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:20px; position:relative;
+  }
+  .card h4{ font-size:12.5px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px; }
+  .chart-wrap{ position:relative; height:260px; }
+  .chart-wrap.tall{ height:320px; }
+  .chart-wrap.short{ height:200px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  thead th{
+    text-align:left; color:var(--text-dim); font-weight:500; font-size:11px;
+    text-transform:uppercase; letter-spacing:0.4px; padding:6px 8px; border-bottom:1px solid var(--border);
+  }
+  tbody td{ padding:8px 8px; border-bottom:1px solid rgba(35,46,68,0.5); font-family:var(--mono); }
+  tbody td.name{ font-family:var(--sans); }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:var(--surface-2); }
+  td.num{ text-align:right; }
+  .tag{ display:inline-block; padding:2px 7px; border-radius:5px; font-size:11px; font-family:var(--mono); }
+  .tag.good{ background:rgba(45,217,185,0.12); color:var(--teal); }
+  .tag.warn{ background:rgba(242,169,60,0.14); color:var(--amber); }
+  .tag.risk{ background:rgba(240,87,75,0.14); color:var(--coral); }
+
+  /* ---------- Heatmap ---------- */
+  .heatmap{ display:block; text-align:center; }
+  .heatmap img{ width:100%; height:auto; border-radius:4px; }
+
+  .insight{
+    font-size:12.5px; color:var(--text-dim); background:var(--surface-2);
+    border-left:2px solid var(--teal); padding:10px 14px; border-radius:0 8px 8px 0; margin-top:14px;
+  }
+  .insight b{ color:var(--text); font-weight:600; }
+
+  footer{ margin-top:60px; padding-top:20px; border-top:1px solid var(--border); color:var(--text-dim); font-size:11.5px; }
+
+  @media (max-width:980px){
+    body{ grid-template-columns:1fr; }
+    #sidebar{ position:relative; height:auto; }
+    .kpi-strip{ grid-template-columns:repeat(3,1fr); }
+    .grid-2, .grid-3{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="brand">
+    <div class="mark">₹</div>
+    <h1>Payments Ledger</h1>
+    <p>Digital Payments Analytics</p>
+  </div>
+  <nav id="nav">
+    <a href="#overview">Overview</a>
+    <a href="#volume">Volume &amp; Value</a>
+    <a href="#categories">Merchant Categories</a>
+    <a href="#geography">Geography</a>
+    <a href="#failures">Failure Rate</a>
+    <a href="#fraud">Fraud Rate</a>
+    <a href="#peaks">Peak Periods</a>
+    <a href="#customers">Customer Behaviour</a>
+    <a href="#channels">Channel Performance</a>
+  </nav>
+  <div class="sidebar-foot">
+    <span class="dot">●</span> synthetic dataset · 60,000 txns<br>
+    Sep 2025 – Aug 2026
+  </div>
+</aside>
+
+<main>
+  <header class="top">
+    <div>
+      <h2>Digital Payments Analytics Dashboard</h2>
+      <p>SQL → Python → Dashboard pipeline over a synthetic transaction ledger spanning UPI, cards, net banking and wallets.</p>
+    </div>
+    <div class="range-pill">01 Sep 2025 – 31 Aug 2026</div>
+  </header>
+
+  <section id="overview">
+    <div class="kpi-strip" id="kpiStrip"></div>
+  </section>
+
+  <section id="volume">
+    <div class="section-head"><span class="idx">01</span><h3>Transaction Volume &amp; Value</h3></div>
+    <p class="section-sub">Monthly count of transactions against total value moved, showing the festive-season (Oct–Nov) uplift.</p>
+    <div class="card">
+      <h4>Monthly trend</h4>
+      <div class="chart-wrap tall"><img src="charts/01_monthly_trend.png" style="width:100%; height:auto; border-radius:4px;"></div>
+    </div>
+  </section>
+
+  <section id="categories">
+    <div class="section-head"><span class="idx">02</span><h3>Merchant Category</h3></div>
+    <p class="section-sub">Where transaction value concentrates, and how failure/fraud rates differ by category.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Value by category</h4>
+        <div class="chart-wrap tall"><img src="charts/02_category_value.png" style="width:100%; height:auto; border-radius:4px;"></div>
+      </div>
+      <div class="card">
+        <h4>Category risk profile</h4>
+        <table id="tblCategoryPerf">
+          <thead><tr><th>Category</th><th class="num">Txns</th><th class="num">Fail %</th><th class="num">Fraud %</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="geography">
+    <div class="section-head"><span class="idx">03</span><h3>Geography</h3></div>
+    <p class="section-sub">Transaction value by state, and the top cities driving it.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Top 10 states by value</h4>
+        <div class="chart-wrap tall"><img src="charts/08_geography_states.png" style="width:100%; height:auto; border-radius:4px;"></div>
+      </div>
+      <div class="card">
+        <h4>Top 10 cities by value</h4>
+        <table id="tblGeoCity">
+          <thead><tr><th>City</th><th>State</th><th class="num">Txns</th><th class="num">Value (₹ Mn)</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="failures">
+    <div class="section-head"><span class="idx">04</span><h3>Failure Rate</h3></div>
+    <p class="section-sub">Failure rate by payment channel, and the worst single days — the outlier day below is a simulated gateway outage.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Failure rate by channel</h4>
+        <div class="chart-wrap"><img src="charts/03_failure_by_channel.png" style="width:100%; height:auto; border-radius:4px;"></div>
+      </div>
+      <div class="card">
+        <h4>Worst 10 days by failure rate</h4>
+        <table id="tblFailDays">
+          <thead><tr><th>Date</th><th class="num">Txns</th><th class="num">Fail %</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="insight" id="outageInsight"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="fraud">
+    <div class="section-head"><span class="idx">05</span><h3>Fraud Rate</h3></div>
+    <p class="section-sub">Fraud concentrates in high-value tickets, credit cards, and late-night hours — classic risk-model signals.</p>
+    <div class="grid-3">
+      <div class="card">
+        <h4>By channel</h4>
+        <div class="chart-wrap short"><i>No static chart available</i></div>
+      </div>
+      <div class="card">
+        <h4>By amount bucket</h4>
+        <div class="chart-wrap short"><i>No static chart available</i></div>
+      </div>
+      <div class="card">
+        <h4>By hour of day</h4>
+        <div class="chart-wrap short"><img src="charts/04_fraud_by_hour.png" style="width:100%; height:auto; border-radius:4px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="peaks">
+    <div class="section-head"><span class="idx">06</span><h3>Peak Transaction Periods</h3></div>
+    <p class="section-sub">Transaction density by day of week and hour — darker cells mean more transactions. Evenings and weekends lead.</p>
+    <div class="card">
+      <h4>Day × hour heatmap</h4>
+      <div class="heatmap"><img src="charts/05_peak_heatmap.png" style="width:100%; height:auto; border-radius:4px;"></div>
+    </div>
+  </section>
+
+  <section id="customers">
+    <div class="section-head"><span class="idx">07</span><h3>Customer Behaviour</h3></div>
+    <p class="section-sub">How customers segment by transaction frequency, and how spend varies by age group.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Segmentation by frequency</h4>
+        <div class="chart-wrap"><img src="charts/06_customer_segments.png" style="width:100%; height:auto; border-radius:4px;"></div>
+      </div>
+      <div class="card">
+        <h4>Avg. transaction value by age group</h4>
+        <div class="chart-wrap"><i>No static chart available</i></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="channels">
+    <div class="section-head"><span class="idx">08</span><h3>Payment-Channel Performance</h3></div>
+    <p class="section-sub">Full scorecard: volume share, value moved, average ticket size and success rate per channel.</p>
+    <div class="card">
+      <table id="tblChannels">
+        <thead><tr>
+          <th>Channel</th><th class="num">Volume share</th><th class="num">Total value (₹ Mn)</th>
+          <th class="num">Avg ticket (₹)</th><th class="num">Success rate</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Synthetic dataset generated for demonstration purposes — 60,000 transactions, Sep 2025–Aug 2026.
+    Pipeline: <span style="color:var(--teal)">CSV → SQLite (SQL) → pandas (Python) → this dashboard</span>.
+  </footer>
+</main>
+
+<script>
+const DATA = {"kpis": [{"total_transactions": 60000, "successful_transactions": 56803, "total_value_inr": 87343805.32, "avg_ticket_size_inr": 1455.73, "active_customers": 4703, "active_merchants": 799, "failure_rate_pct": 5.33, "fraud_rate_pct": 0.275}], "monthly_trend": [{"month": "2025-09", "txn_count": 4525, "txn_value_inr": 6763299.07}, {"month": "2025-10", "txn_count": 6892, "txn_value_inr": 10009091.73}, {"month": "2025-11", "txn_count": 6827, "txn_value_inr": 10012680.15}, {"month": "2025-12", "txn_count": 4760, "txn_value_inr": 6822608.14}, {"month": "2026-01", "txn_count": 4826, "txn_value_inr": 6690662.18}, {"month": "2026-02", "txn_count": 4179, "txn_value_inr": 6160691.77}, {"month": "2026-03", "txn_count": 4703, "txn_value_inr": 6746788.96}, {"month": "2026-04", "txn_count": 4520, "txn_value_inr": 6610283.03}, {"month": "2026-05", "txn_count": 4701, "txn_value_inr": 6956847.98}, {"month": "2026-06", "txn_count": 4523, "txn_value_inr": 6819099.95}, {"month": "2026-07", "txn_count": 4701, "txn_value_inr": 6695588.33}, {"month": "2026-08", "txn_count": 4843, "txn_value_inr": 7056164.03}], "category_value": [{"merchant_category": "E-commerce", "txn_count": 11960, "total_value_inr": 22782605.74, "avg_value_inr": 1904.9, "pct_of_total_value": 26.08}, {"merchant_category": "Fashion", "txn_count": 6095, "total_value_inr": 11977072.87, "avg_value_inr": 1965.07, "pct_of_total_value": 13.71}, {"merchant_category": "Fuel", "txn_count": 9403, "total_value_inr": 11280607.7, "avg_value_inr": 1199.68, "pct_of_total_value": 12.92}, {"merchant_category": "Financial Services", "txn_count": 3001, "total_value_inr": 9311207.23, "avg_value_inr": 3102.7, "pct_of_total_value": 10.66}, {"merchant_category": "Travel", "txn_count": 1782, "total_value_inr": 7742141.44, "avg_value_inr": 4344.64, "pct_of_total_value": 8.86}, {"merchant_category": "Education", "txn_count": 1320, "total_value_inr": 7129188.58, "avg_value_inr": 5400.9, "pct_of_total_value": 8.16}, {"merchant_category": "Grocery", "txn_count": 7427, "total_value_inr": 4804028.04, "avg_value_inr": 646.83, "pct_of_total_value": 5.5}, {"merchant_category": "Entertainment", "txn_count": 7671, "total_value_inr": 3892139.99, "avg_value_inr": 507.38, "pct_of_total_value": 4.46}, {"merchant_category": "Healthcare", "txn_count": 2266, "total_value_inr": 3701896.08, "avg_value_inr": 1633.67, "pct_of_total_value": 4.24}, {"merchant_category": "Utilities", "txn_count": 2520, "total_value_inr": 2405388.32, "avg_value_inr": 954.52, "pct_of_total_value": 2.75}, {"merchant_category": "Food Delivery", "txn_count": 6555, "total_value_inr": 2317529.33, "avg_value_inr": 353.55, "pct_of_total_value": 2.65}], "category_performance": [{"merchant_category": "E-commerce", "txn_count": 11960, "avg_amount_inr": 1904.9, "failure_rate_pct": 5.75, "fraud_rate_pct": 0.184}, {"merchant_category": "Fuel", "txn_count": 9403, "avg_amount_inr": 1199.68, "failure_rate_pct": 4.89, "fraud_rate_pct": 0.245}, {"merchant_category": "Entertainment", "txn_count": 7671, "avg_amount_inr": 507.38, "failure_rate_pct": 4.28, "fraud_rate_pct": 0.274}, {"merchant_category": "Grocery", "txn_count": 7427, "avg_amount_inr": 646.83, "failure_rate_pct": 4.59, "fraud_rate_pct": 0.337}, {"merchant_category": "Food Delivery", "txn_count": 6555, "avg_amount_inr": 353.55, "failure_rate_pct": 4.71, "fraud_rate_pct": 0.183}, {"merchant_category": "Fashion", "txn_count": 6095, "avg_amount_inr": 1965.07, "failure_rate_pct": 6.23, "fraud_rate_pct": 0.345}, {"merchant_category": "Financial Services", "txn_count": 3001, "avg_amount_inr": 3102.7, "failure_rate_pct": 8.0, "fraud_rate_pct": 0.267}, {"merchant_category": "Utilities", "txn_count": 2520, "avg_amount_inr": 954.52, "failure_rate_pct": 4.6, "fraud_rate_pct": 0.238}, {"merchant_category": "Healthcare", "txn_count": 2266, "avg_amount_inr": 1633.67, "failure_rate_pct": 4.02, "fraud_rate_pct": 0.353}, {"merchant_category": "Travel", "txn_count": 1782, "avg_amount_inr": 4344.64, "failure_rate_pct": 7.69, "fraud_rate_pct": 0.673}, {"merchant_category": "Education", "txn_count": 1320, "avg_amount_inr": 5400.9, "failure_rate_pct": 8.11, "fraud_rate_pct": 0.53}], "geography_state": [{"customer_state": "Maharashtra", "txn_count": 12466, "total_value_inr": 18145241.21, "failure_rate_pct": 5.11, "fraud_rate_pct": 0.345}, {"customer_state": "Gujarat", "txn_count": 6973, "total_value_inr": 10138321.3, "failure_rate_pct": 5.39, "fraud_rate_pct": 0.287}, {"customer_state": "Karnataka", "txn_count": 6349, "total_value_inr": 9400515.05, "failure_rate_pct": 5.37, "fraud_rate_pct": 0.299}, {"customer_state": "Delhi", "txn_count": 6092, "total_value_inr": 8893370.52, "failure_rate_pct": 5.5, "fraud_rate_pct": 0.263}, {"customer_state": "Telangana", "txn_count": 5509, "total_value_inr": 7880636.51, "failure_rate_pct": 5.32, "fraud_rate_pct": 0.272}, {"customer_state": "Tamil Nadu", "txn_count": 4973, "total_value_inr": 7079476.84, "failure_rate_pct": 5.63, "fraud_rate_pct": 0.261}, {"customer_state": "Punjab", "txn_count": 3247, "total_value_inr": 4733160.36, "failure_rate_pct": 5.94, "fraud_rate_pct": 0.216}, {"customer_state": "Madhya Pradesh", "txn_count": 3094, "total_value_inr": 4563918.87, "failure_rate_pct": 5.43, "fraud_rate_pct": 0.259}, {"customer_state": "West Bengal", "txn_count": 2689, "total_value_inr": 4017791.6, "failure_rate_pct": 5.39, "fraud_rate_pct": 0.223}, {"customer_state": "Kerala", "txn_count": 2207, "total_value_inr": 3167303.69, "failure_rate_pct": 4.94, "fraud_rate_pct": 0.136}, {"customer_state": "Rajasthan", "txn_count": 1947, "total_value_inr": 2745663.2, "failure_rate_pct": 5.5, "fraud_rate_pct": 0.308}, {"customer_state": "Uttar Pradesh", "txn_count": 1845, "total_value_inr": 2716267.36, "failure_rate_pct": 5.04, "fraud_rate_pct": 0.217}, {"customer_state": "Bihar", "txn_count": 1744, "total_value_inr": 2569555.73, "failure_rate_pct": 4.64, "fraud_rate_pct": 0.172}, {"customer_state": "Assam", "txn_count": 865, "total_value_inr": 1292583.08, "failure_rate_pct": 4.51, "fraud_rate_pct": 0.231}], "geography_top_cities": [{"customer_city": "Bengaluru", "customer_state": "Karnataka", "txn_count": 6349, "total_value_inr": 9400515.05}, {"customer_city": "Mumbai", "customer_state": "Maharashtra", "txn_count": 6194, "total_value_inr": 8936549.45}, {"customer_city": "Delhi", "customer_state": "Delhi", "txn_count": 6092, "total_value_inr": 8893370.52}, {"customer_city": "Hyderabad", "customer_state": "Telangana", "txn_count": 5509, "total_value_inr": 7880636.51}, {"customer_city": "Ahmedabad", "customer_state": "Gujarat", "txn_count": 4498, "total_value_inr": 6573715.02}, {"customer_city": "Chennai", "customer_state": "Tamil Nadu", "txn_count": 3837, "total_value_inr": 5424943.56}, {"customer_city": "Pune", "customer_state": "Maharashtra", "txn_count": 3589, "total_value_inr": 5183408.91}, {"customer_city": "Chandigarh", "customer_state": "Punjab", "txn_count": 3247, "total_value_inr": 4733160.36}, {"customer_city": "Kolkata", "customer_state": "West Bengal", "txn_count": 2689, "total_value_inr": 4017791.6}, {"customer_city": "Surat", "customer_state": "Gujarat", "txn_count": 2475, "total_value_inr": 3564606.28}], "failure_by_channel": [{"payment_channel": "Net Banking", "txn_count": 5960, "failed_count": 461, "failure_rate_pct": 7.73}, {"payment_channel": "Debit Card", "txn_count": 10834, "failed_count": 686, "failure_rate_pct": 6.33}, {"payment_channel": "Credit Card", "txn_count": 9588, "failed_count": 502, "failure_rate_pct": 5.24}, {"payment_channel": "Wallet", "txn_count": 5964, "failed_count": 276, "failure_rate_pct": 4.63}, {"payment_channel": "UPI", "txn_count": 27654, "failed_count": 1272, "failure_rate_pct": 4.6}], "failure_worst_days": [{"txn_date": "2026-03-14", "txn_count": 180, "failure_rate_pct": 45.56}, {"txn_date": "2025-12-29", "txn_count": 141, "failure_rate_pct": 10.64}, {"txn_date": "2026-01-19", "txn_count": 123, "failure_rate_pct": 10.57}, {"txn_date": "2026-05-27", "txn_count": 113, "failure_rate_pct": 9.73}, {"txn_date": "2026-04-21", "txn_count": 136, "failure_rate_pct": 9.56}, {"txn_date": "2025-12-31", "txn_count": 118, "failure_rate_pct": 9.32}, {"txn_date": "2026-04-01", "txn_count": 134, "failure_rate_pct": 8.96}, {"txn_date": "2025-12-14", "txn_count": 180, "failure_rate_pct": 8.89}, {"txn_date": "2026-08-27", "txn_count": 151, "failure_rate_pct": 8.61}, {"txn_date": "2026-04-09", "txn_count": 164, "failure_rate_pct": 8.54}], "fraud_by_channel": [{"payment_channel": "Credit Card", "txn_count": 9588, "fraud_count": 44, "fraud_rate_pct": 0.459}, {"payment_channel": "Wallet", "txn_count": 5964, "fraud_count": 17, "fraud_rate_pct": 0.285}, {"payment_channel": "Debit Card", "txn_count": 10834, "fraud_count": 30, "fraud_rate_pct": 0.277}, {"payment_channel": "UPI", "txn_count": 27654, "fraud_count": 63, "fraud_rate_pct": 0.228}, {"payment_channel": "Net Banking", "txn_count": 5960, "fraud_count": 11, "fraud_rate_pct": 0.185}], "fraud_by_amount_bucket": [{"amount_bucket": "1. <500", "txn_count": 17265, "fraud_rate_pct": 0.22}, {"amount_bucket": "2. 500-2000", "txn_count": 28741, "fraud_rate_pct": 0.285}, {"amount_bucket": "3. 2000-5000", "txn_count": 11605, "fraud_rate_pct": 0.267}, {"amount_bucket": "4. 5000-10000", "txn_count": 2204, "fraud_rate_pct": 0.499}, {"amount_bucket": "5. 10000+", "txn_count": 185, "fraud_rate_pct": 1.622}], "fraud_by_hour": [{"hour_of_day": 0, "txn_count": 568, "fraud_rate_pct": 0.528}, {"hour_of_day": 1, "txn_count": 333, "fraud_rate_pct": 0.3}, {"hour_of_day": 2, "txn_count": 269, "fraud_rate_pct": 0.743}, {"hour_of_day": 3, "txn_count": 167, "fraud_rate_pct": 1.198}, {"hour_of_day": 4, "txn_count": 171, "fraud_rate_pct": 0.585}, {"hour_of_day": 5, "txn_count": 382, "fraud_rate_pct": 0.0}, {"hour_of_day": 6, "txn_count": 919, "fraud_rate_pct": 0.326}, {"hour_of_day": 7, "txn_count": 1849, "fraud_rate_pct": 0.379}, {"hour_of_day": 8, "txn_count": 2948, "fraud_rate_pct": 0.17}, {"hour_of_day": 9, "txn_count": 3552, "fraud_rate_pct": 0.169}, {"hour_of_day": 10, "txn_count": 3134, "fraud_rate_pct": 0.319}, {"hour_of_day": 11, "txn_count": 2956, "fraud_rate_pct": 0.203}, {"hour_of_day": 12, "txn_count": 3848, "fraud_rate_pct": 0.338}, {"hour_of_day": 13, "txn_count": 4221, "fraud_rate_pct": 0.19}, {"hour_of_day": 14, "txn_count": 3266, "fraud_rate_pct": 0.153}, {"hour_of_day": 15, "txn_count": 2795, "fraud_rate_pct": 0.25}, {"hour_of_day": 16, "txn_count": 2861, "fraud_rate_pct": 0.35}, {"hour_of_day": 17, "txn_count": 3442, "fraud_rate_pct": 0.203}, {"hour_of_day": 18, "txn_count": 4400, "fraud_rate_pct": 0.295}, {"hour_of_day": 19, "txn_count": 5321, "fraud_rate_pct": 0.301}, {"hour_of_day": 20, "txn_count": 4834, "fraud_rate_pct": 0.31}, {"hour_of_day": 21, "txn_count": 3906, "fraud_rate_pct": 0.384}, {"hour_of_day": 22, "txn_count": 2588, "fraud_rate_pct": 0.27}, {"hour_of_day": 23, "txn_count": 1270, "fraud_rate_pct": 0.236}], "peak_heatmap": [{"day_of_week": "0-Sun", "hour_of_day": 0, "txn_count": 105}, {"day_of_week": "0-Sun", "hour_of_day": 1, "txn_count": 41}, {"day_of_week": "0-Sun", "hour_of_day": 2, "txn_count": 47}, {"day_of_week": "0-Sun", "hour_of_day": 3, "txn_count": 31}, {"day_of_week": "0-Sun", "hour_of_day": 4, "txn_count": 26}, {"day_of_week": "0-Sun", "hour_of_day": 5, "txn_count": 58}, {"day_of_week": "0-Sun", "hour_of_day": 6, "txn_count": 142}, {"day_of_week": "0-Sun", "hour_of_day": 7, "txn_count": 297}, {"day_of_week": "0-Sun", "hour_of_day": 8, "txn_count": 488}, {"day_of_week": "0-Sun", "hour_of_day": 9, "txn_count": 599}, {"day_of_week": "0-Sun", "hour_of_day": 10, "txn_count": 531}, {"day_of_week": "0-Sun", "hour_of_day": 11, "txn_count": 431}, {"day_of_week": "0-Sun", "hour_of_day": 12, "txn_count": 608}, {"day_of_week": "0-Sun", "hour_of_day": 13, "txn_count": 723}, {"day_of_week": "0-Sun", "hour_of_day": 14, "txn_count": 531}, {"day_of_week": "0-Sun", "hour_of_day": 15, "txn_count": 462}, {"day_of_week": "0-Sun", "hour_of_day": 16, "txn_count": 445}, {"day_of_week": "0-Sun", "hour_of_day": 17, "txn_count": 534}, {"day_of_week": "0-Sun", "hour_of_day": 18, "txn_count": 760}, {"day_of_week": "0-Sun", "hour_of_day": 19, "txn_count": 887}, {"day_of_week": "0-Sun", "hour_of_day": 20, "txn_count": 770}, {"day_of_week": "0-Sun", "hour_of_day": 21, "txn_count": 612}, {"day_of_week": "0-Sun", "hour_of_day": 22, "txn_count": 425}, {"day_of_week": "0-Sun", "hour_of_day": 23, "txn_count": 213}, {"day_of_week": "1-Mon", "hour_of_day": 0, "txn_count": 68}, {"day_of_week": "1-Mon", "hour_of_day": 1, "txn_count": 45}, {"day_of_week": "1-Mon", "hour_of_day": 2, "txn_count": 38}, {"day_of_week": "1-Mon", "hour_of_day": 3, "txn_count": 24}, {"day_of_week": "1-Mon", "hour_of_day": 4, "txn_count": 25}, {"day_of_week": "1-Mon", "hour_of_day": 5, "txn_count": 52}, {"day_of_week": "1-Mon", "hour_of_day": 6, "txn_count": 129}, {"day_of_week": "1-Mon", "hour_of_day": 7, "txn_count": 241}, {"day_of_week": "1-Mon", "hour_of_day": 8, "txn_count": 390}, {"day_of_week": "1-Mon", "hour_of_day": 9, "txn_count": 488}, {"day_of_week": "1-Mon", "hour_of_day": 10, "txn_count": 452}, {"day_of_week": "1-Mon", "hour_of_day": 11, "txn_count": 376}, {"day_of_week": "1-Mon", "hour_of_day": 12, "txn_count": 549}, {"day_of_week": "1-Mon", "hour_of_day": 13, "txn_count": 565}, {"day_of_week": "1-Mon", "hour_of_day": 14, "txn_count": 481}, {"day_of_week": "1-Mon", "hour_of_day": 15, "txn_count": 392}, {"day_of_week": "1-Mon", "hour_of_day": 16, "txn_count": 416}, {"day_of_week": "1-Mon", "hour_of_day": 17, "txn_count": 481}, {"day_of_week": "1-Mon", "hour_of_day": 18, "txn_count": 607}, {"day_of_week": "1-Mon", "hour_of_day": 19, "txn_count": 706}, {"day_of_week": "1-Mon", "hour_of_day": 20, "txn_count": 663}, {"day_of_week": "1-Mon", "hour_of_day": 21, "txn_count": 572}, {"day_of_week": "1-Mon", "hour_of_day": 22, "txn_count": 362}, {"day_of_week": "1-Mon", "hour_of_day": 23, "txn_count": 154}, {"day_of_week": "2-Tue", "hour_of_day": 0, "txn_count": 89}, {"day_of_week": "2-Tue", "hour_of_day": 1, "txn_count": 52}, {"day_of_week": "2-Tue", "hour_of_day": 2, "txn_count": 34}, {"day_of_week": "2-Tue", "hour_of_day": 3, "txn_count": 27}, {"day_of_week": "2-Tue", "hour_of_day": 4, "txn_count": 28}, {"day_of_week": "2-Tue", "hour_of_day": 5, "txn_count": 47}, {"day_of_week": "2-Tue", "hour_of_day": 6, "txn_count": 100}, {"day_of_week": "2-Tue", "hour_of_day": 7, "txn_count": 272}, {"day_of_week": "2-Tue", "hour_of_day": 8, "txn_count": 390}, {"day_of_week": "2-Tue", "hour_of_day": 9, "txn_count": 509}, {"day_of_week": "2-Tue", "hour_of_day": 10, "txn_count": 388}, {"day_of_week": "2-Tue", "hour_of_day": 11, "txn_count": 396}, {"day_of_week": "2-Tue", "hour_of_day": 12, "txn_count": 528}, {"day_of_week": "2-Tue", "hour_of_day": 13, "txn_count": 560}, {"day_of_week": "2-Tue", "hour_of_day": 14, "txn_count": 421}, {"day_of_week": "2-Tue", "hour_of_day": 15, "txn_count": 358}, {"day_of_week": "2-Tue", "hour_of_day": 16, "txn_count": 370}, {"day_of_week": "2-Tue", "hour_of_day": 17, "txn_count": 447}, {"day_of_week": "2-Tue", "hour_of_day": 18, "txn_count": 619}, {"day_of_week": "2-Tue", "hour_of_day": 19, "txn_count": 671}, {"day_of_week": "2-Tue", "hour_of_day": 20, "txn_count": 603}, {"day_of_week": "2-Tue", "hour_of_day": 21, "txn_count": 512}, {"day_of_week": "2-Tue", "hour_of_day": 22, "txn_count": 325}, {"day_of_week": "2-Tue", "hour_of_day": 23, "txn_count": 172}, {"day_of_week": "3-Wed", "hour_of_day": 0, "txn_count": 73}, {"day_of_week": "3-Wed", "hour_of_day": 1, "txn_count": 39}, {"day_of_week": "3-Wed", "hour_of_day": 2, "txn_count": 33}, {"day_of_week": "3-Wed", "hour_of_day": 3, "txn_count": 23}, {"day_of_week": "3-Wed", "hour_of_day": 4, "txn_count": 22}, {"day_of_week": "3-Wed", "hour_of_day": 5, "txn_count": 61}, {"day_of_week": "3-Wed", "hour_of_day": 6, "txn_count": 151}, {"day_of_week": "3-Wed", "hour_of_day": 7, "txn_count": 244}, {"day_of_week": "3-Wed", "hour_of_day": 8, "txn_count": 390}, {"day_of_week": "3-Wed", "hour_of_day": 9, "txn_count": 478}, {"day_of_week": "3-Wed", "hour_of_day": 10, "txn_count": 419}, {"day_of_week": "3-Wed", "hour_of_day": 11, "txn_count": 390}, {"day_of_week": "3-Wed", "hour_of_day": 12, "txn_count": 501}, {"day_of_week": "3-Wed", "hour_of_day": 13, "txn_count": 585}, {"day_of_week": "3-Wed", "hour_of_day": 14, "txn_count": 437}, {"day_of_week": "3-Wed", "hour_of_day": 15, "txn_count": 381}, {"day_of_week": "3-Wed", "hour_of_day": 16, "txn_count": 367}, {"day_of_week": "3-Wed", "hour_of_day": 17, "txn_count": 464}, {"day_of_week": "3-Wed", "hour_of_day": 18, "txn_count": 535}, {"day_of_week": "3-Wed", "hour_of_day": 19, "txn_count": 761}, {"day_of_week": "3-Wed", "hour_of_day": 20, "txn_count": 668}, {"day_of_week": "3-Wed", "hour_of_day": 21, "txn_count": 513}, {"day_of_week": "3-Wed", "hour_of_day": 22, "txn_count": 357}, {"day_of_week": "3-Wed", "hour_of_day": 23, "txn_count": 176}, {"day_of_week": "4-Thu", "hour_of_day": 0, "txn_count": 81}, {"day_of_week": "4-Thu", "hour_of_day": 1, "txn_count": 52}, {"day_of_week": "4-Thu", "hour_of_day": 2, "txn_count": 50}, {"day_of_week": "4-Thu", "hour_of_day": 3, "txn_count": 19}, {"day_of_week": "4-Thu", "hour_of_day": 4, "txn_count": 24}, {"day_of_week": "4-Thu", "hour_of_day": 5, "txn_count": 61}, {"day_of_week": "4-Thu", "hour_of_day": 6, "txn_count": 117}, {"day_of_week": "4-Thu", "hour_of_day": 7, "txn_count": 237}, {"day_of_week": "4-Thu", "hour_of_day": 8, "txn_count": 415}, {"day_of_week": "4-Thu", "hour_of_day": 9, "txn_count": 485}, {"day_of_week": "4-Thu", "hour_of_day": 10, "txn_count": 412}, {"day_of_week": "4-Thu", "hour_of_day": 11, "txn_count": 393}, {"day_of_week": "4-Thu", "hour_of_day": 12, "txn_count": 503}, {"day_of_week": "4-Thu", "hour_of_day": 13, "txn_count": 602}, {"day_of_week": "4-Thu", "hour_of_day": 14, "txn_count": 477}, {"day_of_week": "4-Thu", "hour_of_day": 15, "txn_count": 371}, {"day_of_week": "4-Thu", "hour_of_day": 16, "txn_count": 371}, {"day_of_week": "4-Thu", "hour_of_day": 17, "txn_count": 497}, {"day_of_week": "4-Thu", "hour_of_day": 18, "txn_count": 610}, {"day_of_week": "4-Thu", "hour_of_day": 19, "txn_count": 698}, {"day_of_week": "4-Thu", "hour_of_day": 20, "txn_count": 645}, {"day_of_week": "4-Thu", "hour_of_day": 21, "txn_count": 549}, {"day_of_week": "4-Thu", "hour_of_day": 22, "txn_count": 344}, {"day_of_week": "4-Thu", "hour_of_day": 23, "txn_count": 159}, {"day_of_week": "5-Fri", "hour_of_day": 0, "txn_count": 66}, {"day_of_week": "5-Fri", "hour_of_day": 1, "txn_count": 49}, {"day_of_week": "5-Fri", "hour_of_day": 2, "txn_count": 37}, {"day_of_week": "5-Fri", "hour_of_day": 3, "txn_count": 19}, {"day_of_week": "5-Fri", "hour_of_day": 4, "txn_count": 15}, {"day_of_week": "5-Fri", "hour_of_day": 5, "txn_count": 41}, {"day_of_week": "5-Fri", "hour_of_day": 6, "txn_count": 120}, {"day_of_week": "5-Fri", "hour_of_day": 7, "txn_count": 256}, {"day_of_week": "5-Fri", "hour_of_day": 8, "txn_count": 397}, {"day_of_week": "5-Fri", "hour_of_day": 9, "txn_count": 473}, {"day_of_week": "5-Fri", "hour_of_day": 10, "txn_count": 415}, {"day_of_week": "5-Fri", "hour_of_day": 11, "txn_count": 447}, {"day_of_week": "5-Fri", "hour_of_day": 12, "txn_count": 516}, {"day_of_week": "5-Fri", "hour_of_day": 13, "txn_count": 518}, {"day_of_week": "5-Fri", "hour_of_day": 14, "txn_count": 432}, {"day_of_week": "5-Fri", "hour_of_day": 15, "txn_count": 378}, {"day_of_week": "5-Fri", "hour_of_day": 16, "txn_count": 420}, {"day_of_week": "5-Fri", "hour_of_day": 17, "txn_count": 458}, {"day_of_week": "5-Fri", "hour_of_day": 18, "txn_count": 573}, {"day_of_week": "5-Fri", "hour_of_day": 19, "txn_count": 720}, {"day_of_week": "5-Fri", "hour_of_day": 20, "txn_count": 660}, {"day_of_week": "5-Fri", "hour_of_day": 21, "txn_count": 549}, {"day_of_week": "5-Fri", "hour_of_day": 22, "txn_count": 338}, {"day_of_week": "5-Fri", "hour_of_day": 23, "txn_count": 160}, {"day_of_week": "6-Sat", "hour_of_day": 0, "txn_count": 86}, {"day_of_week": "6-Sat", "hour_of_day": 1, "txn_count": 55}, {"day_of_week": "6-Sat", "hour_of_day": 2, "txn_count": 30}, {"day_of_week": "6-Sat", "hour_of_day": 3, "txn_count": 24}, {"day_of_week": "6-Sat", "hour_of_day": 4, "txn_count": 31}, {"day_of_week": "6-Sat", "hour_of_day": 5, "txn_count": 62}, {"day_of_week": "6-Sat", "hour_of_day": 6, "txn_count": 160}, {"day_of_week": "6-Sat", "hour_of_day": 7, "txn_count": 302}, {"day_of_week": "6-Sat", "hour_of_day": 8, "txn_count": 478}, {"day_of_week": "6-Sat", "hour_of_day": 9, "txn_count": 520}, {"day_of_week": "6-Sat", "hour_of_day": 10, "txn_count": 517}, {"day_of_week": "6-Sat", "hour_of_day": 11, "txn_count": 523}, {"day_of_week": "6-Sat", "hour_of_day": 12, "txn_count": 643}, {"day_of_week": "6-Sat", "hour_of_day": 13, "txn_count": 668}, {"day_of_week": "6-Sat", "hour_of_day": 14, "txn_count": 487}, {"day_of_week": "6-Sat", "hour_of_day": 15, "txn_count": 453}, {"day_of_week": "6-Sat", "hour_of_day": 16, "txn_count": 472}, {"day_of_week": "6-Sat", "hour_of_day": 17, "txn_count": 561}, {"day_of_week": "6-Sat", "hour_of_day": 18, "txn_count": 696}, {"day_of_week": "6-Sat", "hour_of_day": 19, "txn_count": 878}, {"day_of_week": "6-Sat", "hour_of_day": 20, "txn_count": 825}, {"day_of_week": "6-Sat", "hour_of_day": 21, "txn_count": 599}, {"day_of_week": "6-Sat", "hour_of_day": 22, "txn_count": 437}, {"day_of_week": "6-Sat", "hour_of_day": 23, "txn_count": 236}], "customer_segments": [{"customer_segment": "1. One-time (1 txn)", "num_customers": 530, "avg_spend_inr": 1480.53, "total_txns_in_segment": 530}, {"customer_segment": "2. Occasional (2-5)", "num_customers": 1770, "avg_spend_inr": 4777.91, "total_txns_in_segment": 5803}, {"customer_segment": "3. Regular (6-15)", "num_customers": 1538, "avg_spend_inr": 13469.86, "total_txns_in_segment": 14303}, {"customer_segment": "4. Power user (16+)", "num_customers": 865, "avg_spend_inr": 66341.71, "total_txns_in_segment": 39364}], "spend_by_age_group": [{"customer_age_group": "18-24", "txn_count": 9872, "avg_amount_inr": 1452.34, "total_value_inr": 14337542.43}, {"customer_age_group": "25-34", "txn_count": 21183, "avg_amount_inr": 1464.56, "total_value_inr": 31023687.37}, {"customer_age_group": "35-44", "txn_count": 14673, "avg_amount_inr": 1449.0, "total_value_inr": 21261162.15}, {"customer_age_group": "45-54", "txn_count": 7908, "avg_amount_inr": 1441.62, "total_value_inr": 11400313.08}, {"customer_age_group": "55+", "txn_count": 6364, "avg_amount_inr": 1464.66, "total_value_inr": 9321100.29}], "channel_performance": [{"payment_channel": "UPI", "txn_count": 27654, "volume_share_pct": 46.09, "total_value_inr": 39981959.95, "avg_ticket_size_inr": 1445.79, "success_rate_pct": 95.4}, {"payment_channel": "Debit Card", "txn_count": 10834, "volume_share_pct": 18.06, "total_value_inr": 15960623.45, "avg_ticket_size_inr": 1473.2, "success_rate_pct": 93.67}, {"payment_channel": "Credit Card", "txn_count": 9588, "volume_share_pct": 15.98, "total_value_inr": 14041270.19, "avg_ticket_size_inr": 1464.46, "success_rate_pct": 94.76}, {"payment_channel": "Wallet", "txn_count": 5964, "volume_share_pct": 9.94, "total_value_inr": 8636290.21, "avg_ticket_size_inr": 1448.07, "success_rate_pct": 95.37}, {"payment_channel": "Net Banking", "txn_count": 5960, "volume_share_pct": 9.93, "total_value_inr": 8723661.52, "avg_ticket_size_inr": 1463.7, "success_rate_pct": 92.27}]};
+
+function fmtINR(n){
+  if (n >= 1e7) return '₹' + (n/1e7).toFixed(2) + 'Cr';
+  if (n >= 1e5) return '₹' + (n/1e5).toFixed(2) + 'L';
+  if (n >= 1e3) return '₹' + (n/1e3).toFixed(1) + 'K';
+  return '₹' + n.toFixed(0);
+}
+function commas(n){ return Number(n).toLocaleString('en-IN'); }
+
+/* ---------------- KPI strip ---------------- */
+const k = DATA.kpis[0];
+const kpis = [
+  {label:'Total Transactions', value: commas(k.total_transactions), sub: `${commas(k.successful_transactions)} successful`},
+  {label:'Total Value Moved', value: fmtINR(k.total_value_inr), sub:'across all channels'},
+  {label:'Avg Ticket Size', value: '₹' + commas(k.avg_ticket_size_inr), sub:'per transaction'},
+  {label:'Active Customers', value: commas(k.active_customers), sub: commas(k.active_merchants)+' active merchants'},
+  {label:'Failure Rate', value: k.failure_rate_pct + '%', sub:'of all attempts', cls:'warn'},
+  {label:'Fraud Rate', value: k.fraud_rate_pct + '%', sub:'flagged transactions', cls:'risk'},
+];
+document.getElementById('kpiStrip').innerHTML = kpis.map(x => `
+  <div class="kpi ${x.cls||''}">
+    <div class="label">${x.label}</div>
+    <div class="value">${x.value}</div>
+    <div class="sub">${x.sub}</div>
+  </div>`).join('');
+
+/* Category risk table */
+document.querySelector('#tblCategoryPerf tbody').innerHTML =
+  [...DATA.category_performance].sort((a,b)=>b.txn_count-a.txn_count).map(r=>{
+    const failCls = r.failure_rate_pct > 6.5 ? 'risk' : r.failure_rate_pct > 5 ? 'warn' : 'good';
+    const fraudCls = r.fraud_rate_pct > 0.35 ? 'risk' : r.fraud_rate_pct > 0.22 ? 'warn' : 'good';
+    return `<tr><td class="name">${r.merchant_category}</td><td class="num">${commas(r.txn_count)}</td>
+      <td class="num"><span class="tag ${failCls}">${r.failure_rate_pct}%</span></td>
+      <td class="num"><span class="tag ${fraudCls}">${r.fraud_rate_pct}%</span></td></tr>`;
+  }).join('');
+
+/* Geography table */
+document.querySelector('#tblGeoCity tbody').innerHTML = DATA.geography_top_cities.map(r=>
+  `<tr><td class="name">${r.customer_city}</td><td class="name">${r.customer_state}</td>
+   <td class="num">${commas(r.txn_count)}</td><td class="num">${(r.total_value_inr/1e6).toFixed(2)}</td></tr>`
+).join('');
+
+/* Failures table */
+document.querySelector('#tblFailDays tbody').innerHTML = DATA.failure_worst_days.map(r=>
+  `<tr><td class="name">${r.txn_date}</td><td class="num">${commas(r.txn_count)}</td>
+   <td class="num"><span class="tag risk">${r.failure_rate_pct}%</span></td></tr>`
+).join('');
+const worst = DATA.failure_worst_days[0];
+document.getElementById('outageInsight').innerHTML =
+  `<b>${worst.txn_date}</b> spiked to <b>${worst.failure_rate_pct}%</b> failures — a simulated gateway
+   outage injected into the dataset to demonstrate anomaly detection on the failure-rate trend.`;
+
+/* Channel performance table */
+document.querySelector('#tblChannels tbody').innerHTML = DATA.channel_performance.map(r=>{
+  const cls = r.success_rate_pct > 95 ? 'good' : r.success_rate_pct > 92 ? 'warn' : 'risk';
+  return `<tr><td class="name">${r.payment_channel}</td>
+    <td class="num">${r.volume_share_pct}%</td>
+    <td class="num">${(r.total_value_inr/1e6).toFixed(2)}</td>
+    <td class="num">${commas(r.avg_ticket_size_inr)}</td>
+    <td class="num"><span class="tag ${cls}">${r.success_rate_pct}%</span></td></tr>`;
+}).join('');
+
+/* ---------------- Scrollspy for sidebar ---------------- */
+const navLinks = [...document.querySelectorAll('#nav a')];
+const sections = navLinks.map(a => document.querySelector(a.getAttribute('href')));
+function onScroll(){
+  let idx = 0;
+  const y = window.scrollY + 120;
+  sections.forEach((s,i)=>{ if(s && s.offsetTop <= y) idx = i; });
+  navLinks.forEach((a,i)=> a.classList.toggle('active', i===idx));
+}
+document.addEventListener('scroll', onScroll);
+onScroll();
+</script>
+</body>
+</html>

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Payments Analytics — Ledger</title>
+<style>
+  :root{
+    --bg: #0B0F16;
+    --surface: #121826;
+    --surface-2: #182236;
+    --border: #232E44;
+    --text: #E7ECF6;
+    --text-dim: #8793AA;
+    --teal: #2DD9B9;
+    --teal-dim: rgba(45,217,185,0.14);
+    --amber: #F2A93C;
+    --coral: #F0574B;
+    --indigo: #7C8CF8;
+    --mono: 'Consolas', 'SFMono-Regular', 'Cascadia Mono', Menlo, Monaco, monospace;
+    --sans: 'Segoe UI', -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--sans);
+    display:grid; grid-template-columns: 236px 1fr; min-height:100vh;
+  }
+  ::selection{ background:var(--teal-dim); color:var(--teal); }
+
+  /* ---------- Sidebar ---------- */
+  #sidebar{
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+    background:var(--surface); border-right:1px solid var(--border);
+    padding:28px 20px; display:flex; flex-direction:column; gap:28px;
+  }
+  .brand{ display:flex; flex-direction:column; gap:4px; }
+  .brand .mark{
+    width:34px; height:34px; border-radius:8px;
+    background:linear-gradient(135deg, var(--teal), #1B9C84);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:700; color:#04231D; font-size:15px;
+    margin-bottom:8px;
+  }
+  .brand h1{ font-size:15px; font-weight:600; letter-spacing:0.2px; }
+  .brand p{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+
+  nav{ display:flex; flex-direction:column; gap:2px; }
+  nav a{
+    color:var(--text-dim); text-decoration:none; font-size:13.5px;
+    padding:9px 10px; border-radius:7px; border-left:2px solid transparent;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  nav a:hover{ background:var(--surface-2); color:var(--text); }
+  nav a.active{ color:var(--teal); border-left-color:var(--teal); background:var(--teal-dim); }
+
+  .sidebar-foot{ margin-top:auto; font-size:11.5px; color:var(--text-dim); line-height:1.5; }
+  .sidebar-foot .dot{ color:var(--teal); }
+
+  /* ---------- Main ---------- */
+  main{ padding:36px 44px 90px; max-width:1180px; }
+  header.top{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    margin-bottom:28px; gap:20px; flex-wrap:wrap;
+  }
+  header.top h2{ font-size:22px; font-weight:600; }
+  header.top p{ color:var(--text-dim); font-size:13.5px; margin-top:4px; max-width:520px; }
+  .range-pill{
+    font-family:var(--mono); font-size:12px; color:var(--teal);
+    border:1px solid var(--border); padding:7px 12px; border-radius:20px;
+    background:var(--surface); white-space:nowrap;
+  }
+
+  /* ---------- KPI strip ---------- */
+  .kpi-strip{
+    display:grid; grid-template-columns:repeat(6, 1fr); gap:12px; margin-bottom:44px;
+  }
+  .kpi{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:16px 14px;
+  }
+  .kpi .label{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.6px; }
+  .kpi .value{ font-family:var(--mono); font-size:21px; font-weight:600; margin-top:8px; letter-spacing:-0.3px; }
+  .kpi .sub{ font-size:11px; margin-top:5px; color:var(--text-dim); }
+  .kpi.warn .value{ color:var(--amber); }
+  .kpi.risk .value{ color:var(--coral); }
+  .kpi.good .value{ color:var(--teal); }
+
+  /* ---------- Sections ---------- */
+  section{ padding-top:52px; margin-top:-24px; scroll-margin-top:24px; }
+  section:first-of-type{ padding-top:0; }
+  .section-head{ display:flex; align-items:baseline; gap:10px; margin-bottom:4px; }
+  .section-head h3{ font-size:17px; font-weight:600; }
+  .section-head .idx{ font-family:var(--mono); font-size:12px; color:var(--teal); }
+  .section-sub{ color:var(--text-dim); font-size:13px; margin-bottom:18px; max-width:640px; }
+
+  .grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:16px; }
+  .grid-3{ display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; }
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:20px; position:relative;
+  }
+  .card h4{ font-size:12.5px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px; }
+  .chart-wrap{ position:relative; height:260px; }
+  .chart-wrap.tall{ height:320px; }
+  .chart-wrap.short{ height:200px; }
+  .svg-chart{ width:100%; height:100%; }
+  .svg-chart svg{ display:block; overflow:visible; }
+  .svg-chart .bar{ transition:opacity .15s; }
+  .svg-chart .bar:hover{ opacity:0.8; }
+  .svg-chart .axis-label{ fill:var(--text-dim); font-family:var(--mono); }
+  .svg-chart .val-label{ fill:var(--text); font-family:var(--mono); }
+  .donut-wrap{ display:flex; align-items:center; gap:20px; height:100%; }
+  .donut-legend{ display:flex; flex-direction:column; gap:9px; font-size:12px; }
+  .donut-legend .row{ display:flex; align-items:center; gap:8px; color:var(--text-dim); }
+  .donut-legend .swatch{ width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+  .donut-legend .row b{ color:var(--text); font-family:var(--mono); font-weight:600; }
+  .legend-inline{ display:flex; gap:18px; margin-bottom:10px; font-size:11.5px; color:var(--text-dim); }
+  .legend-inline .row{ display:flex; align-items:center; gap:6px; }
+  .legend-inline .swatch{ width:9px; height:9px; border-radius:2px; }
+  .legend-inline .line-swatch{ width:14px; height:2px; border-radius:1px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  thead th{
+    text-align:left; color:var(--text-dim); font-weight:500; font-size:11px;
+    text-transform:uppercase; letter-spacing:0.4px; padding:6px 8px; border-bottom:1px solid var(--border);
+  }
+  tbody td{ padding:8px 8px; border-bottom:1px solid rgba(35,46,68,0.5); font-family:var(--mono); }
+  tbody td.name{ font-family:var(--sans); }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:var(--surface-2); }
+  td.num{ text-align:right; }
+  .tag{ display:inline-block; padding:2px 7px; border-radius:5px; font-size:11px; font-family:var(--mono); }
+  .tag.good{ background:rgba(45,217,185,0.12); color:var(--teal); }
+  .tag.warn{ background:rgba(242,169,60,0.14); color:var(--amber); }
+  .tag.risk{ background:rgba(240,87,75,0.14); color:var(--coral); }
+
+  /* ---------- Heatmap ---------- */
+  .heatmap{ display:grid; grid-template-columns:44px repeat(24, 1fr); gap:3px; font-family:var(--mono); font-size:10px; }
+  .heatmap .hlabel{ color:var(--text-dim); display:flex; align-items:center; }
+  .heatmap .hcell{ aspect-ratio:1; border-radius:3px; cursor:default; }
+  .heatmap .hcol-label{ color:var(--text-dim); text-align:center; font-size:9px; }
+
+  .insight{
+    font-size:12.5px; color:var(--text-dim); background:var(--surface-2);
+    border-left:2px solid var(--teal); padding:10px 14px; border-radius:0 8px 8px 0; margin-top:14px;
+  }
+  .insight b{ color:var(--text); font-weight:600; }
+
+  footer{ margin-top:60px; padding-top:20px; border-top:1px solid var(--border); color:var(--text-dim); font-size:11.5px; }
+
+  @media (max-width:980px){
+    body{ grid-template-columns:1fr; }
+    #sidebar{ position:relative; height:auto; }
+    .kpi-strip{ grid-template-columns:repeat(3,1fr); }
+    .grid-2, .grid-3{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="brand">
+    <div class="mark">₹</div>
+    <h1>Payments Ledger</h1>
+    <p>Digital Payments Analytics</p>
+  </div>
+  <nav id="nav">
+    <a href="#overview">Overview</a>
+    <a href="#volume">Volume &amp; Value</a>
+    <a href="#categories">Merchant Categories</a>
+    <a href="#geography">Geography</a>
+    <a href="#failures">Failure Rate</a>
+    <a href="#fraud">Fraud Rate</a>
+    <a href="#peaks">Peak Periods</a>
+    <a href="#customers">Customer Behaviour</a>
+    <a href="#channels">Channel Performance</a>
+  </nav>
+  <div class="sidebar-foot">
+    <span class="dot">●</span> synthetic dataset · 60,000 txns<br>
+    Sep 2025 – Aug 2026
+  </div>
+</aside>
+
+<main>
+  <header class="top">
+    <div>
+      <h2>Digital Payments Analytics Dashboard</h2>
+      <p>SQL → Python → Dashboard pipeline over a synthetic transaction ledger spanning UPI, cards, net banking and wallets.</p>
+    </div>
+    <div class="range-pill">01 Sep 2025 – 31 Aug 2026</div>
+  </header>
+
+  <section id="overview">
+    <div class="kpi-strip" id="kpiStrip"></div>
+  </section>
+
+  <section id="volume">
+    <div class="section-head"><span class="idx">01</span><h3>Transaction Volume &amp; Value</h3></div>
+    <p class="section-sub">Monthly count of transactions against total value moved, showing the festive-season (Oct–Nov) uplift.</p>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h4 style="margin-bottom:0">Monthly trend</h4>
+        <div class="legend-inline" style="margin-bottom:0">
+          <div class="row"><span class="swatch" style="background:#2DD9B9"></span>Transactions</div>
+          <div class="row"><span class="line-swatch" style="background:#F2A93C"></span>Value (₹ Mn)</div>
+        </div>
+      </div>
+      <div class="chart-wrap tall"><div id="chartMonthly" class="svg-chart"></div></div>
+    </div>
+  </section>
+
+  <section id="categories">
+    <div class="section-head"><span class="idx">02</span><h3>Merchant Category</h3></div>
+    <p class="section-sub">Where transaction value concentrates, and how failure/fraud rates differ by category.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Value by category</h4>
+        <div class="chart-wrap tall"><div id="chartCategoryValue" class="svg-chart"></div></div>
+      </div>
+      <div class="card">
+        <h4>Category risk profile</h4>
+        <table id="tblCategoryPerf">
+          <thead><tr><th>Category</th><th class="num">Txns</th><th class="num">Fail %</th><th class="num">Fraud %</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="geography">
+    <div class="section-head"><span class="idx">03</span><h3>Geography</h3></div>
+    <p class="section-sub">Transaction value by state, and the top cities driving it.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Top 10 states by value</h4>
+        <div class="chart-wrap tall"><div id="chartGeoState" class="svg-chart"></div></div>
+      </div>
+      <div class="card">
+        <h4>Top 10 cities by value</h4>
+        <table id="tblGeoCity">
+          <thead><tr><th>City</th><th>State</th><th class="num">Txns</th><th class="num">Value (₹ Mn)</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="failures">
+    <div class="section-head"><span class="idx">04</span><h3>Failure Rate</h3></div>
+    <p class="section-sub">Failure rate by payment channel, and the worst single days — the outlier day below is a simulated gateway outage.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Failure rate by channel</h4>
+        <div class="chart-wrap"><div id="chartFailChannel" class="svg-chart"></div></div>
+      </div>
+      <div class="card">
+        <h4>Worst 10 days by failure rate</h4>
+        <table id="tblFailDays">
+          <thead><tr><th>Date</th><th class="num">Txns</th><th class="num">Fail %</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="insight" id="outageInsight"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="fraud">
+    <div class="section-head"><span class="idx">05</span><h3>Fraud Rate</h3></div>
+    <p class="section-sub">Fraud concentrates in high-value tickets, credit cards, and late-night hours — classic risk-model signals.</p>
+    <div class="grid-3">
+      <div class="card">
+        <h4>By channel</h4>
+        <div class="chart-wrap short"><div id="chartFraudChannel" class="svg-chart"></div></div>
+      </div>
+      <div class="card">
+        <h4>By amount bucket</h4>
+        <div class="chart-wrap short"><div id="chartFraudAmount" class="svg-chart"></div></div>
+      </div>
+      <div class="card">
+        <h4>By hour of day</h4>
+        <div class="chart-wrap short"><div id="chartFraudHour" class="svg-chart"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="peaks">
+    <div class="section-head"><span class="idx">06</span><h3>Peak Transaction Periods</h3></div>
+    <p class="section-sub">Transaction density by day of week and hour — darker cells mean more transactions. Evenings and weekends lead.</p>
+    <div class="card">
+      <h4>Day × hour heatmap</h4>
+      <div class="heatmap" id="heatmap"></div>
+    </div>
+  </section>
+
+  <section id="customers">
+    <div class="section-head"><span class="idx">07</span><h3>Customer Behaviour</h3></div>
+    <p class="section-sub">How customers segment by transaction frequency, and how spend varies by age group.</p>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Segmentation by frequency</h4>
+        <div class="chart-wrap"><div id="chartSegments" class="svg-chart"></div></div>
+      </div>
+      <div class="card">
+        <h4>Avg. transaction value by age group</h4>
+        <div class="chart-wrap"><div id="chartAgeGroup" class="svg-chart"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="channels">
+    <div class="section-head"><span class="idx">08</span><h3>Payment-Channel Performance</h3></div>
+    <p class="section-sub">Full scorecard: volume share, value moved, average ticket size and success rate per channel.</p>
+    <div class="card">
+      <table id="tblChannels">
+        <thead><tr>
+          <th>Channel</th><th class="num">Volume share</th><th class="num">Total value (₹ Mn)</th>
+          <th class="num">Avg ticket (₹)</th><th class="num">Success rate</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Synthetic dataset generated for demonstration purposes — 60,000 transactions, Sep 2025–Aug 2026.
+    Pipeline: <span style="color:var(--teal)">CSV → SQLite (SQL) → pandas (Python) → this dashboard</span>.
+  </footer>
+</main>
+
+<script>
+const DATA = __DASHBOARD_DATA__;
+
+Chart.defaults.color = '#8793AA';
+Chart.defaults.font.family = "'IBM Plex Sans', sans-serif";
+Chart.defaults.font.size = 11.5;
+Chart.defaults.borderColor = '#232E44';
+
+const TEAL = '#2DD9B9', AMBER = '#F2A93C', CORAL = '#F0574B', INDIGO = '#7C8CF8', DIM='#8793AA';
+const PALETTE = [TEAL, INDIGO, AMBER, CORAL, '#5FB8E0', '#B682F0', '#6FE0A0', '#E0A9F0'];
+
+function fmtINR(n){
+  if (n >= 1e7) return '₹' + (n/1e7).toFixed(2) + 'Cr';
+  if (n >= 1e5) return '₹' + (n/1e5).toFixed(2) + 'L';
+  if (n >= 1e3) return '₹' + (n/1e3).toFixed(1) + 'K';
+  return '₹' + n.toFixed(0);
+}
+function commas(n){ return Number(n).toLocaleString('en-IN'); }
+
+/* ---------------- KPI strip ---------------- */
+const k = DATA.kpis[0];
+const kpis = [
+  {label:'Total Transactions', value: commas(k.total_transactions), sub:`${commas(k.successful_transactions)} successful`},
+  {label:'Total Value Moved', value: fmtINR(k.total_value_inr), sub:'across all channels'},
+  {label:'Avg Ticket Size', value: '₹' + commas(k.avg_ticket_size_inr), sub:'per transaction'},
+  {label:'Active Customers', value: commas(k.active_customers), sub: commas(k.active_merchants)+' active merchants'},
+  {label:'Failure Rate', value: k.failure_rate_pct + '%', sub:'of all attempts', cls:'warn'},
+  {label:'Fraud Rate', value: k.fraud_rate_pct + '%', sub:'flagged transactions', cls:'risk'},
+];
+document.getElementById('kpiStrip').innerHTML = kpis.map(x => `
+  <div class="kpi ${x.cls||''}">
+    <div class="label">${x.label}</div>
+    <div class="value">${x.value}</div>
+    <div class="sub">${x.sub}</div>
+  </div>`).join('');
+
+/* ---------------- Chart helpers ---------------- */
+const gridStyle = { color:'rgba(35,46,68,0.6)' };
+function baseOpts(extra){
+  return Object.assign({
+    responsive:true, maintainAspectRatio:false,
+    plugins:{ legend:{ labels:{ boxWidth:10, boxHeight:10, usePointStyle:true } } },
+    scales:{ x:{ grid: gridStyle }, y:{ grid: gridStyle } }
+  }, extra||{});
+}
+
+/* 1. Monthly trend (bar + line) */
+new Chart(document.getElementById('chartMonthly'), {
+  data:{
+    labels: DATA.monthly_trend.map(r=>r.month),
+    datasets:[
+      { type:'bar', label:'Transactions', data: DATA.monthly_trend.map(r=>r.txn_count),
+        backgroundColor:'rgba(45,217,185,0.55)', borderRadius:4, yAxisID:'y' },
+      { type:'line', label:'Value (₹ Mn)', data: DATA.monthly_trend.map(r=>r.txn_value_inr/1e6),
+        borderColor: AMBER, backgroundColor:AMBER, tension:0.35, yAxisID:'y1', pointRadius:3 }
+    ]
+  },
+  options: baseOpts({
+    scales:{
+      x:{ grid: gridStyle },
+      y:{ position:'left', grid: gridStyle, title:{display:true, text:'Transactions'} },
+      y1:{ position:'right', grid:{ drawOnChartArea:false }, title:{display:true, text:'₹ Millions'} }
+    }
+  })
+});
+
+/* 2. Category value (horizontal bar) */
+const catVal = [...DATA.category_value].sort((a,b)=>a.total_value_inr-b.total_value_inr);
+new Chart(document.getElementById('chartCategoryValue'), {
+  type:'bar',
+  data:{ labels: catVal.map(r=>r.merchant_category),
+    datasets:[{ label:'Value (₹ Mn)', data: catVal.map(r=>r.total_value_inr/1e6),
+      backgroundColor: TEAL, borderRadius:4 }] },
+  options: baseOpts({ indexAxis:'y', plugins:{legend:{display:false}} })
+});
+
+/* Category risk table */
+document.querySelector('#tblCategoryPerf tbody').innerHTML =
+  [...DATA.category_performance].sort((a,b)=>b.txn_count-a.txn_count).map(r=>{
+    const failCls = r.failure_rate_pct > 6.5 ? 'risk' : r.failure_rate_pct > 5 ? 'warn' : 'good';
+    const fraudCls = r.fraud_rate_pct > 0.35 ? 'risk' : r.fraud_rate_pct > 0.22 ? 'warn' : 'good';
+    return `<tr><td class="name">${r.merchant_category}</td><td class="num">${commas(r.txn_count)}</td>
+      <td class="num"><span class="tag ${failCls}">${r.failure_rate_pct}%</span></td>
+      <td class="num"><span class="tag ${fraudCls}">${r.fraud_rate_pct}%</span></td></tr>`;
+  }).join('');
+
+/* 3. Geography */
+const geo = [...DATA.geography_state].sort((a,b)=>b.total_value_inr-a.total_value_inr).slice(0,10).reverse();
+new Chart(document.getElementById('chartGeoState'), {
+  type:'bar',
+  data:{ labels: geo.map(r=>r.customer_state),
+    datasets:[{ label:'Value (₹ Mn)', data: geo.map(r=>r.total_value_inr/1e6),
+      backgroundColor: INDIGO, borderRadius:4 }] },
+  options: baseOpts({ indexAxis:'y', plugins:{legend:{display:false}} })
+});
+document.querySelector('#tblGeoCity tbody').innerHTML = DATA.geography_top_cities.map(r=>
+  `<tr><td class="name">${r.customer_city}</td><td class="name">${r.customer_state}</td>
+   <td class="num">${commas(r.txn_count)}</td><td class="num">${(r.total_value_inr/1e6).toFixed(2)}</td></tr>`
+).join('');
+
+/* 4. Failures */
+const failCh = [...DATA.failure_by_channel].sort((a,b)=>a.failure_rate_pct-b.failure_rate_pct);
+new Chart(document.getElementById('chartFailChannel'), {
+  type:'bar',
+  data:{ labels: failCh.map(r=>r.payment_channel),
+    datasets:[{ label:'Failure rate %', data: failCh.map(r=>r.failure_rate_pct),
+      backgroundColor: failCh.map(r=> r.failure_rate_pct>7 ? CORAL : r.failure_rate_pct>5 ? AMBER : TEAL),
+      borderRadius:4 }] },
+  options: baseOpts({ indexAxis:'y', plugins:{legend:{display:false}} })
+});
+document.querySelector('#tblFailDays tbody').innerHTML = DATA.failure_worst_days.map(r=>
+  `<tr><td class="name">${r.txn_date}</td><td class="num">${commas(r.txn_count)}</td>
+   <td class="num"><span class="tag risk">${r.failure_rate_pct}%</span></td></tr>`
+).join('');
+const worst = DATA.failure_worst_days[0];
+document.getElementById('outageInsight').innerHTML =
+  `<b>${worst.txn_date}</b> spiked to <b>${worst.failure_rate_pct}%</b> failures — a simulated gateway
+   outage injected into the dataset to demonstrate anomaly detection on the failure-rate trend.`;
+
+/* 5. Fraud */
+const fraudCh = [...DATA.fraud_by_channel].sort((a,b)=>b.fraud_rate_pct-a.fraud_rate_pct);
+new Chart(document.getElementById('chartFraudChannel'), {
+  type:'bar',
+  data:{ labels: fraudCh.map(r=>r.payment_channel),
+    datasets:[{ data: fraudCh.map(r=>r.fraud_rate_pct), backgroundColor: CORAL, borderRadius:4 }] },
+  options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:gridStyle, ticks:{maxRotation:35, minRotation:35}}, y:{grid:gridStyle} } })
+});
+new Chart(document.getElementById('chartFraudAmount'), {
+  type:'bar',
+  data:{ labels: DATA.fraud_by_amount_bucket.map(r=>r.amount_bucket.split('. ')[1]),
+    datasets:[{ data: DATA.fraud_by_amount_bucket.map(r=>r.fraud_rate_pct), backgroundColor: AMBER, borderRadius:4 }] },
+  options: baseOpts({ plugins:{legend:{display:false}}, scales:{ x:{grid:gridStyle, ticks:{maxRotation:35, minRotation:35}}, y:{grid:gridStyle} } })
+});
+new Chart(document.getElementById('chartFraudHour'), {
+  type:'line',
+  data:{ labels: DATA.fraud_by_hour.map(r=>r.hour_of_day),
+    datasets:[{ data: DATA.fraud_by_hour.map(r=>r.fraud_rate_pct), borderColor: CORAL,
+      backgroundColor:'rgba(240,87,75,0.15)', fill:true, tension:0.35, pointRadius:2 }] },
+  options: baseOpts({ plugins:{legend:{display:false}} })
+});
+
+/* 6. Heatmap */
+const days = ['0-Sun','1-Mon','2-Tue','3-Wed','4-Thu','5-Fri','6-Sat'];
+const dayShort = {'0-Sun':'Sun','1-Mon':'Mon','2-Tue':'Tue','3-Wed':'Wed','4-Thu':'Thu','5-Fri':'Fri','6-Sat':'Sat'};
+const maxCount = Math.max(...DATA.peak_heatmap.map(r=>r.txn_count));
+let heatHtml = `<div></div>` + Array.from({length:24},(_,h)=>`<div class="hcol-label">${h}</div>`).join('');
+days.forEach(d=>{
+  heatHtml += `<div class="hlabel">${dayShort[d]}</div>`;
+  for(let h=0; h<24; h++){
+    const rec = DATA.peak_heatmap.find(r=>r.day_of_week===d && r.hour_of_day===h);
+    const count = rec ? rec.txn_count : 0;
+    const t = count / maxCount;
+    const bg = `rgba(45,217,185,${(0.06 + t*0.85).toFixed(2)})`;
+    heatHtml += `<div class="hcell" style="background:${bg}" title="${dayShort[d]} ${h}:00 — ${count} txns"></div>`;
+  }
+});
+document.getElementById('heatmap').innerHTML = heatHtml;
+
+/* 7. Customer behaviour */
+new Chart(document.getElementById('chartSegments'), {
+  type:'doughnut',
+  data:{ labels: DATA.customer_segments.map(r=>r.customer_segment.split('. ')[1]),
+    datasets:[{ data: DATA.customer_segments.map(r=>r.num_customers), backgroundColor: PALETTE, borderColor:'#121826', borderWidth:2 }] },
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{boxWidth:10, boxHeight:10, usePointStyle:true} } } }
+});
+new Chart(document.getElementById('chartAgeGroup'), {
+  type:'bar',
+  data:{ labels: DATA.spend_by_age_group.map(r=>r.customer_age_group),
+    datasets:[{ label:'Avg amount (₹)', data: DATA.spend_by_age_group.map(r=>r.avg_amount_inr), backgroundColor: INDIGO, borderRadius:4 }] },
+  options: baseOpts({ plugins:{legend:{display:false}} })
+});
+
+/* 8. Channel performance table */
+document.querySelector('#tblChannels tbody').innerHTML = DATA.channel_performance.map(r=>{
+  const cls = r.success_rate_pct > 95 ? 'good' : r.success_rate_pct > 92 ? 'warn' : 'risk';
+  return `<tr><td class="name">${r.payment_channel}</td>
+    <td class="num">${r.volume_share_pct}%</td>
+    <td class="num">${(r.total_value_inr/1e6).toFixed(2)}</td>
+    <td class="num">${commas(r.avg_ticket_size_inr)}</td>
+    <td class="num"><span class="tag ${cls}">${r.success_rate_pct}%</span></td></tr>`;
+}).join('');
+
+/* ---------------- Scrollspy for sidebar ---------------- */
+const navLinks = [...document.querySelectorAll('#nav a')];
+const sections = navLinks.map(a => document.querySelector(a.getAttribute('href')));
+function onScroll(){
+  let idx = 0;
+  const y = window.scrollY + 120;
+  sections.forEach((s,i)=>{ if(s && s.offsetTop <= y) idx = i; });
+  navLinks.forEach((a,i)=> a.classList.toggle('active', i===idx));
+}
+document.addEventListener('scroll', onScroll);
+onScroll();
+</script>
+</body>
+</html>

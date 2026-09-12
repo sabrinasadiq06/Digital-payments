@@ -1,0 +1,5 @@
+customer_segment,num_customers,avg_spend_inr,total_txns_in_segment
+1. One-time (1 txn),530,1480.53,530
+2. Occasional (2-5),1770,4777.91,5803
+3. Regular (6-15),1538,13469.86,14303
+4. Power user (16+),865,66341.71,39364

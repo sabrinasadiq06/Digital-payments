@@ -1,0 +1,6 @@
+payment_channel,txn_count,volume_share_pct,total_value_inr,avg_ticket_size_inr,success_rate_pct
+UPI,27654,46.09,39981959.95,1445.79,95.4
+Debit Card,10834,18.06,15960623.45,1473.2,93.67
+Credit Card,9588,15.98,14041270.19,1464.46,94.76
+Wallet,5964,9.94,8636290.21,1448.07,95.37
+Net Banking,5960,9.93,8723661.52,1463.7,92.27
